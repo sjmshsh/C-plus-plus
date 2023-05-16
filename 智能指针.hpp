@@ -181,7 +181,7 @@ namespace lxy
 		{
 			// if (this == &sp)
 			// 如果我们管理的是同一个资源的话, 就不进行赋值
-			if (_ptr == sp->_ptr)
+			if (_ptr == sp._ptr)
 			{
 				return *this;
 			}
@@ -220,12 +220,61 @@ namespace lxy
 		{
 			return _ptr;
 		}
+
+		int use_count()
+		{
+			return *(_pCount);
+		}
+
+		T* get()
+		{
+			return _ptr;
+		}
+
 	private:
 		T* _ptr;
 
 		int* _pCount;
 	};
 
+	// 辅助性智能指针，使命就是配合解决shared_ptr的循环引用问题
+	template<class T>
+	class weak_ptr
+	{
+	public:
+		weak_ptr()
+			:_ptr(nullptr)
+		{
+
+		}
+
+		weak_ptr(const shared_ptr<T>& sp)
+			:_ptr(sp.get())
+		{}
+
+		weak_ptr(const weak_ptr<T> &wp)
+			:_ptr(wp._ptr)
+		{}
+
+		weak_ptr<T>& operator=(const shared_ptr<T>& sp)
+		{
+			_ptr = sp.get();
+			return *this;
+		}
+
+		T& operator*()
+		{
+			return *_ptr;
+		}
+
+		T* operator->()
+		{
+			return _ptr;
+		}
+
+	private:
+		T* _ptr;
+	};
 }
 
 
@@ -276,8 +325,8 @@ void test_shared_ptr()
 struct Node
 {
 	int _val;
-	std::weak_ptr<Node> _next;
-	std::weak_ptr<Node> _prev;
+	lxy::shared_ptr<Node> _next;
+	lxy::shared_ptr<Node> _prev;
 
 	~Node()
 	{
@@ -292,8 +341,8 @@ struct Node
 // 前提是你可以识别到有循环引用的问题再进行使用
 void test_shared_ptr2()
 {
-	std::shared_ptr<Node> n1(new Node);
-	std::shared_ptr<Node> n2(new Node);
+	lxy::shared_ptr<Node> n1(new Node);
+	lxy::shared_ptr<Node> n2(new Node);
 
 	// 循环引用
 	n1->_next = n2;
